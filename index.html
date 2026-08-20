@@ -273,17 +273,31 @@ H|1</textarea>
   <script>
     let lastCalculatedResults = [];
 
+    // ダブルクォートやシングルクォートを取り除くクリーニング関数
+    function cleanValue(str) {
+      if (!str) return '';
+      return str.trim().replace(/^["']|["']$/g, '').trim();
+    }
+
     function parseMembers() {
       const text = document.getElementById('inputText').value.trim();
       const lines = text.split('\n');
       const members = [];
       
       lines.forEach(line => {
-        const parts = line.trim().split(/[\t,| ]+/);
+        const trimmedLine = line.trim();
+        // ヘッダー行（例: メンバー名,スキルレベル など）を自動スキップ
+        if (trimmedLine.includes('メンバー') || trimmedLine.includes('スキル')) return;
+
+        const parts = trimmedLine.split(/[\t,| ]+/);
         if (parts.length >= 2) {
-          const name = parts[0].trim();
-          const skill = parseFloat(parts[1].trim());
-          if (name && !isNaN(skill)) members.push({ name, skill });
+          // 前後のダブルクォートを取り除く処理を追加
+          const name = cleanValue(parts[0]);
+          const skill = parseFloat(cleanValue(parts[1]));
+          
+          if (name && !isNaN(skill)) {
+            members.push({ name, skill });
+          }
         }
       });
       return members;
@@ -292,8 +306,8 @@ H|1</textarea>
     function addSingleMember() {
       const nameInput = document.getElementById('addName');
       const skillInput = document.getElementById('addSkill');
-      const name = nameInput.value.trim();
-      const skill = skillInput.value.trim();
+      const name = cleanValue(nameInput.value);
+      const skill = cleanValue(skillInput.value);
 
       if (!name || skill === '' || isNaN(skill)) {
         alert('名前とスキルを正しく入力してください。');
@@ -327,14 +341,14 @@ H|1</textarea>
       const reader = new FileReader();
       reader.onload = function(e) {
         document.getElementById('inputText').value = e.target.result.trim();
+        // ファイル読み込み直後に自動でクォート除去と整理を行う
         formatData();
       };
       reader.readAsText(file);
     }
 
-    // --- CSVダウンロードヘルパー (BOM付きUTF-8) ---
     function triggerDownloadCSV(csvContent, fileName) {
-      const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+      const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
       const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -345,7 +359,6 @@ H|1</textarea>
       document.body.removeChild(link);
     }
 
-    // 入力データのCSVダウンロード
     function downloadMemberCSV() {
       const members = parseMembers();
       if (members.length === 0) {
@@ -359,7 +372,6 @@ H|1</textarea>
       triggerDownloadCSV(csv, "members_list.csv");
     }
 
-    // 結果のCSVダウンロード
     function downloadResultCSV() {
       if (!lastCalculatedResults || lastCalculatedResults.length === 0) {
         alert("出力する組み合わせ結果がありません。");
@@ -384,8 +396,8 @@ H|1</textarea>
 
       const includeInput = document.getElementById('includeMembers').value.trim();
       const excludeInput = document.getElementById('excludeMembers').value.trim();
-      const includes = includeInput ? includeInput.split(',').map(s => s.trim().toUpperCase()).filter(s => s) : [];
-      const excludes = excludeInput ? excludeInput.split(',').map(s => s.trim().toUpperCase()).filter(s => s) : [];
+      const includes = includeInput ? includeInput.split(',').map(s => cleanValue(s).toUpperCase()).filter(s => s) : [];
+      const excludes = excludeInput ? excludeInput.split(',').map(s => cleanValue(s).toUpperCase()).filter(s => s) : [];
 
       const members = parseMembers();
 
