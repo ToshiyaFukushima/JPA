@@ -150,6 +150,8 @@
     }
     .btn-green { background: #28a745; }
     .btn-green:hover { background: #218838; }
+    .btn-blue { background: #17a2b8; }
+    .btn-blue:hover { background: #138496; }
     
     .btn-main {
       background: #007bff;
@@ -190,6 +192,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
     }
 
     /* メンバー選択チップ */
@@ -299,11 +303,11 @@
   
   <div class="input-section">
     <div class="input-left">
-      <textarea id="inputText" oninput="renderMemberChips()" placeholder="名前|スキル">A|8
+      <textarea id="inputText" oninput="renderMemberChips()" placeholder="名前|スキル">A|9
 B|7
 C|6
 D|5
-E|4
+E|5
 F|3
 G|2
 H|1</textarea>
@@ -336,7 +340,7 @@ H|1</textarea>
   <div class="filter-panel">
     <div class="filter-panel-title">
       <span>🔍 メンバー絞り込み（タップ： 未指定 ➔ 🔵含む ➔ 🔴除外）</span>
-      <span id="csvButtonArea"></span>
+      <div id="actionButtonArea" style="display: flex; gap: 6px;"></div>
     </div>
 
     <!-- タップで切り替えるメンバーバッジ一覧 -->
@@ -517,6 +521,57 @@ H|1</textarea>
       triggerDownloadCSV(csv, "combinations_result.csv");
     }
 
+    // クリップボードに結果テキスト（TSV形式）をコピー
+    function copyResultToClipboard() {
+      if (!lastCalculatedResults || lastCalculatedResults.length === 0) {
+        alert("コピーする組み合わせ結果がありません。");
+        return;
+      }
+
+      let text = "No.\tメンバー構成\t合計スキル\n";
+      lastCalculatedResults.forEach((res, i) => {
+        text += `${i + 1}\t${res.names.join(" / ")}\t${res.total}\n`;
+      });
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showCopyFeedback();
+        }).catch(() => {
+          fallbackCopyText(text);
+        });
+      } else {
+        fallbackCopyText(text);
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand("copy");
+        showCopyFeedback();
+      } catch (err) {
+        alert("クリップボードへのコピーに失敗しました。");
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function showCopyFeedback() {
+      const btn = document.getElementById("copyBtn");
+      if (btn) {
+        btn.innerText = "コピー完了！";
+        btn.style.background = "#28a745";
+        setTimeout(() => {
+          btn.innerText = "結果をコピー";
+          btn.style.background = "";
+        }, 1500);
+      }
+    }
+
     function calculate() {
       const teamSize = parseInt(document.getElementById('teamSize').value);
       const maxSkill = parseInt(document.getElementById('maxSkill').value);
@@ -577,12 +632,15 @@ H|1</textarea>
 
       lastCalculatedResults = filteredResults;
 
-      // CSV出力ボタンの描画制御
-      const csvBtnArea = document.getElementById('csvButtonArea');
+      // ボタンエリアの描画制御 (結果がある時のみコピー＆CSV出力ボタンを表示)
+      const actionArea = document.getElementById('actionButtonArea');
       if (filteredResults.length > 0) {
-        csvBtnArea.innerHTML = '<button class="btn-sm btn-green" onclick="downloadResultCSV()">結果をCSV出力</button>';
+        actionArea.innerHTML = `
+          <button id="copyBtn" class="btn-sm btn-blue" onclick="copyResultToClipboard()">結果をコピー</button>
+          <button class="btn-sm btn-green" onclick="downloadResultCSV()">CSV出力</button>
+        `;
       } else {
-        csvBtnArea.innerHTML = '';
+        actionArea.innerHTML = '';
       }
 
       let html = `<div style="font-weight:bold; margin-bottom: 8px;">該当結果: ${filteredResults.length} 件 (全 ${rawResults.length} 件中)</div>`;
@@ -590,7 +648,6 @@ H|1</textarea>
       if (filteredResults.length > 0) {
         html += '<div class="table-container"><table><thead><tr><th style="width:45px;">No.</th><th>メンバー構成</th><th style="width:85px;">合計</th></tr></thead><tbody>';
         filteredResults.forEach((res, i) => {
-          // 「含む」対象になっているメンバーを一覧でも青色（tag include）にする
           const membersTag = res.names.map(n => {
             const isIncluded = includes.includes(n.toUpperCase());
             return `<span class="tag ${isIncluded ? 'include' : ''}">${n}</span>`;
