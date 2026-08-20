@@ -480,15 +480,12 @@ H|1</textarea>
       const file = files[0];
       const reader = new FileReader();
       reader.onload = function(e) {
-        memberFilterState = {};
-        lastCalculatedResults = [];
-        document.getElementById('actionButtonArea').innerHTML = '';
-        document.getElementById('result').innerHTML = '';
-
         document.getElementById('inputText').value = e.target.result.trim();
         formatData();
-        
         document.getElementById('fileInput').value = '';
+
+        // 整理後：calculate(true) 内でフィルタ初期化・チップ更新・再計算をすべて完結させる
+        calculate(true);
       };
       reader.readAsText(file);
     }
@@ -583,7 +580,6 @@ H|1</textarea>
     }
 
     function calculate(resetFilter = false) {
-      // 再計算ボタン押下時などはフィルターを初期化
       if (resetFilter) {
         memberFilterState = {};
         renderMemberChips();
