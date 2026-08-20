@@ -186,7 +186,7 @@
       font-weight: bold;
       font-size: 13px;
       color: #004085;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -197,7 +197,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .chip {
       padding: 6px 12px;
@@ -292,7 +292,7 @@
   
   <div class="input-section">
     <div class="input-left">
-      <textarea id="inputText" oninput="updateMemberChips()" placeholder="名前|スキル">A|9
+      <textarea id="inputText" oninput="renderMemberChips()" placeholder="名前|スキル">A|9
 B|7
 C|6
 D|5
@@ -328,22 +328,14 @@ H|1</textarea>
   <!-- 絞り込み・コントロールパネル -->
   <div class="filter-panel">
     <div class="filter-panel-title">
-      <span>🔍 タップでフィルタ切り替え（ 未指定 ➔ 🔵含む ➔ 🔴除外 ）</span>
+      <span>🔍 メンバー絞り込み（タップ： 未指定 ➔ 🔵含む ➔ 🔴除外）</span>
       <span id="csvButtonArea"></span>
     </div>
 
-    <!-- クリック可能なメンバーバッジ一覧 -->
+    <!-- タップで切り替えるメンバーバッジ一覧 -->
     <div id="memberChips" class="member-chips"></div>
 
     <div class="row">
-      <div class="form-group">
-        【含む】: <input type="text" id="includeMembers" placeholder="例: A, C" style="flex:1;" oninput="syncChipsFromInputs(); calculate();">
-      </div>
-      <div class="form-group">
-        【除外】: <input type="text" id="excludeMembers" placeholder="例: B" style="flex:1;" oninput="syncChipsFromInputs(); calculate();">
-      </div>
-    </div>
-    <div class="row" style="margin-top: 8px;">
       <div class="form-group">
         並び順: 
         <select id="sortOrder" style="flex:1;" onchange="calculate()">
@@ -358,6 +350,8 @@ H|1</textarea>
 
   <script>
     let lastCalculatedResults = [];
+    // メンバーごとのフィルター状態保持 (キー: 名前(大文字), 値: 'include' | 'exclude' | null)
+    let memberFilterState = {};
 
     function cleanValue(str) {
       if (!str) return '';
@@ -386,28 +380,26 @@ H|1</textarea>
       return members;
     }
 
-    // メンバーチップ（バッジ）の生成と更新
-    function updateMemberChips() {
+    // メンバーバッジ（チップ）を描画
+    function renderMemberChips() {
       const members = parseMembers();
       const chipsContainer = document.getElementById('memberChips');
-      
-      const includeVal = document.getElementById('includeMembers').value.toUpperCase().split(',').map(s => s.trim());
-      const excludeVal = document.getElementById('excludeMembers').value.toUpperCase().split(',').map(s => s.trim());
-
       chipsContainer.innerHTML = '';
 
       members.forEach(m => {
         const chip = document.createElement('div');
         chip.className = 'chip';
-        chip.innerText = m.name;
+        const key = m.name.toUpperCase();
+        const state = memberFilterState[key];
 
-        const upperName = m.name.toUpperCase();
-        if (includeVal.includes(upperName)) {
+        if (state === 'include') {
           chip.classList.add('include');
           chip.innerText = '✓ ' + m.name;
-        } else if (excludeVal.includes(upperName)) {
+        } else if (state === 'exclude') {
           chip.classList.add('exclude');
           chip.innerText = '✕ ' + m.name;
+        } else {
+          chip.innerText = m.name;
         }
 
         chip.onclick = () => toggleChipState(m.name);
@@ -415,39 +407,21 @@ H|1</textarea>
       });
     }
 
-    // チップをタップした時の状態移動 (なし -> 含む -> 除外 -> なし)
+    // チップのタップによる状態移動 ( 未指定 -> 含む -> 除外 -> 未指定 )
     function toggleChipState(memberName) {
-      const includeInput = document.getElementById('includeMembers');
-      const excludeInput = document.getElementById('excludeMembers');
+      const key = memberName.toUpperCase();
+      const currentState = memberFilterState[key];
 
-      let includes = includeInput.value ? includeInput.value.split(',').map(s => s.trim()).filter(s => s) : [];
-      let excludes = excludeInput.value ? excludeInput.value.split(',').map(s => s.trim()).filter(s => s) : [];
-
-      const upperName = memberName.toUpperCase();
-      const incIdx = includes.findIndex(s => s.toUpperCase() === upperName);
-      const excIdx = excludes.findIndex(s => s.toUpperCase() === upperName);
-
-      if (incIdx !== -1) {
-        // 含む ➔ 除外 へ
-        includes.splice(incIdx, 1);
-        excludes.push(memberName);
-      } else if (excIdx !== -1) {
-        // 除外 ➔ なし へ
-        excludes.splice(excIdx, 1);
+      if (!currentState) {
+        memberFilterState[key] = 'include';
+      } else if (currentState === 'include') {
+        memberFilterState[key] = 'exclude';
       } else {
-        // なし ➔ 含む へ
-        includes.push(memberName);
+        delete memberFilterState[key];
       }
 
-      includeInput.value = includes.join(', ');
-      excludeInput.value = excludes.join(', ');
-
-      updateMemberChips();
+      renderMemberChips();
       calculate();
-    }
-
-    function syncChipsFromInputs() {
-      updateMemberChips();
     }
 
     function addSingleMember() {
@@ -469,7 +443,7 @@ H|1</textarea>
       skillInput.value = '';
       nameInput.focus();
       
-      updateMemberChips();
+      renderMemberChips();
     }
 
     function formatData() {
@@ -478,14 +452,13 @@ H|1</textarea>
       members.sort((a, b) => b.skill - a.skill);
       const formatted = members.map(m => `${m.name}|${m.skill}`).join('\n');
       document.getElementById('inputText').value = formatted;
-      updateMemberChips();
+      renderMemberChips();
     }
 
     function clearData() {
       document.getElementById('inputText').value = '';
-      document.getElementById('includeMembers').value = '';
-      document.getElementById('excludeMembers').value = '';
-      updateMemberChips();
+      memberFilterState = {};
+      renderMemberChips();
     }
 
     function handleFile(files) {
@@ -546,10 +519,12 @@ H|1</textarea>
       const highSkillVal = parseFloat(document.getElementById('highSkillVal').value);
       const maxHighCount = parseInt(document.getElementById('maxHighCount').value);
 
-      const includeInput = document.getElementById('includeMembers').value.trim();
-      const excludeInput = document.getElementById('excludeMembers').value.trim();
-      const includes = includeInput ? includeInput.split(',').map(s => cleanValue(s).toUpperCase()).filter(s => s) : [];
-      const excludes = excludeInput ? excludeInput.split(',').map(s => cleanValue(s).toUpperCase()).filter(s => s) : [];
+      const includes = [];
+      const excludes = [];
+      Object.keys(memberFilterState).forEach(key => {
+        if (memberFilterState[key] === 'include') includes.push(key);
+        if (memberFilterState[key] === 'exclude') excludes.push(key);
+      });
 
       const members = parseMembers();
 
@@ -595,7 +570,7 @@ H|1</textarea>
 
       lastCalculatedResults = filteredResults;
 
-      // 結果件数とCSVボタンエリアの更新
+      // CSV出力ボタンの描画制御
       const csvBtnArea = document.getElementById('csvButtonArea');
       if (filteredResults.length > 0) {
         csvBtnArea.innerHTML = '<button class="btn-sm btn-green" onclick="downloadResultCSV()">結果をCSV出力</button>';
@@ -623,9 +598,9 @@ H|1</textarea>
       document.getElementById('result').innerHTML = html;
     }
 
-    // 初期起動時のチップ読み込み
+    // 初期化
     window.onload = function() {
-      updateMemberChips();
+      renderMemberChips();
     };
   </script>
 </body>
