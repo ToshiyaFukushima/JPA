@@ -303,11 +303,11 @@
   
   <div class="input-section">
     <div class="input-left">
-      <textarea id="inputText" oninput="renderMemberChips()" placeholder="名前|スキル">A|8
+      <textarea id="inputText" oninput="renderMemberChips()" placeholder="名前|スキル">A|9
 B|7
 C|6
 D|5
-E|4
+E|5
 F|3
 G|2
 H|1</textarea>
@@ -469,6 +469,9 @@ H|1</textarea>
     function clearData() {
       document.getElementById('inputText').value = '';
       memberFilterState = {};
+      lastCalculatedResults = [];
+      document.getElementById('actionButtonArea').innerHTML = '';
+      document.getElementById('result').innerHTML = '';
       renderMemberChips();
     }
 
@@ -477,8 +480,17 @@ H|1</textarea>
       const file = files[0];
       const reader = new FileReader();
       reader.onload = function(e) {
+        // 新しいファイル読み込み時はフィルター状態と直前の結果を初期化
+        memberFilterState = {};
+        lastCalculatedResults = [];
+        document.getElementById('actionButtonArea').innerHTML = '';
+        document.getElementById('result').innerHTML = '';
+
         document.getElementById('inputText').value = e.target.result.trim();
         formatData();
+        
+        // ファイル入力フォームをリセット（同じファイルを再度選択可能にする）
+        document.getElementById('fileInput').value = '';
       };
       reader.readAsText(file);
     }
