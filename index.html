@@ -20,15 +20,45 @@
       border-bottom: 2px solid #007bff;
       padding-bottom: 6px;
       margin-top: 5px;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
     
-    .config-panel {
+    /* アコーディオン（折りたたみ） */
+    details {
       background: #f8f9fa;
-      border: 1px solid #e9ecef;
-      padding: 12px;
+      border: 1px solid #dee2e6;
       border-radius: 8px;
       margin-bottom: 15px;
+      overflow: hidden;
+    }
+    summary {
+      font-weight: bold;
+      font-size: 14px;
+      padding: 12px;
+      background: #e9ecef;
+      cursor: pointer;
+      user-select: none;
+      outline: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    summary::-webkit-details-marker {
+      display: none; /* デフォルトの矢印を非表示 */
+    }
+    summary::after {
+      content: "▼";
+      font-size: 12px;
+      color: #6c757d;
+    }
+    details[open] summary::after {
+      content: "▲";
+    }
+
+    /* 設定パネル */
+    .config-panel {
+      padding: 12px;
+      border-top: 1px solid #dee2e6;
     }
     .row {
       display: flex;
@@ -66,6 +96,7 @@
       margin: 8px 0;
     }
     
+    /* 入力エリア */
     .input-section {
       display: flex;
       flex-direction: column;
@@ -145,6 +176,7 @@
       font-size: 13px;
     }
 
+    /* 結果表示 */
     .table-container {
       width: 100%;
       overflow-x: auto;
@@ -188,58 +220,61 @@
 
   <h2>スキル組み合わせ計算ツール</h2>
   
-  <!-- 設定パネル -->
-  <div class="config-panel">
-    <div class="row">
-      <div class="form-group" style="width: auto;">
-        選ぶ人数: <input type="number" id="teamSize" value="5" min="1" style="width:55px;">
+  <!-- 折りたたみ設定パネル -->
+  <details>
+    <summary>⚙️ 詳細設定（選ぶ人数・上限・制限ルールなど）</summary>
+    <div class="config-panel">
+      <div class="row">
+        <div class="form-group" style="width: auto;">
+          選ぶ人数: <input type="number" id="teamSize" value="5" min="1" style="width:55px;">
+        </div>
+        <div class="form-group" style="width: auto;">
+          合計上限: <input type="number" id="maxSkill" value="23" style="width:65px;">
+        </div>
+        <div class="form-group">
+          並び順: 
+          <select id="sortOrder" style="flex: 1;">
+            <option value="desc">合計スキル：高い順</option>
+            <option value="asc">合計スキル：低い順</option>
+          </select>
+        </div>
       </div>
-      <div class="form-group" style="width: auto;">
-        合計上限: <input type="number" id="maxSkill" value="23" style="width:65px;">
-      </div>
-      <div class="form-group">
-        並び順: 
-        <select id="sortOrder" style="flex: 1;">
-          <option value="desc">合計スキル：高い順</option>
-          <option value="asc">合計スキル：低い順</option>
-        </select>
-      </div>
-    </div>
 
-    <!-- 高スキルルール -->
-    <div class="rule-box">
-      <div class="row" style="margin-bottom: 0;">
-        <label style="font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 5px;">
-          <input type="checkbox" id="enableSkillLimit" checked style="width: 18px; height: 18px;">
-          特定スキルの人数制限
-        </label>
+      <!-- 高スキルルール -->
+      <div class="rule-box">
+        <div class="row" style="margin-bottom: 0;">
+          <label style="font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" id="enableSkillLimit" checked style="width: 18px; height: 18px;">
+            特定スキルの人数制限
+          </label>
+        </div>
+        <div class="row" style="margin-top: 6px; font-weight: normal; font-size: 13px;">
+          スキル <input type="number" id="highSkillVal" value="6" style="width:50px; height:32px;"> 以上の人は
+          <input type="number" id="maxHighCount" value="2" style="width:50px; height:32px;"> 人まで
+        </div>
       </div>
-      <div class="row" style="margin-top: 6px; font-weight: normal; font-size: 13px;">
-        スキル <input type="number" id="highSkillVal" value="6" style="width:50px; height:32px;"> 以上の人は
-        <input type="number" id="maxHighCount" value="2" style="width:50px; height:32px;"> 人まで
-      </div>
-    </div>
 
-    <div class="row" style="margin-top: 8px;">
-      <div class="form-group">
-        【含む】: <input type="text" id="includeMembers" placeholder="例: A, C" style="flex:1;">
-      </div>
-      <div class="form-group">
-        【除外】: <input type="text" id="excludeMembers" placeholder="例: B" style="flex:1;">
+      <div class="row" style="margin-top: 8px;">
+        <div class="form-group">
+          【含む】: <input type="text" id="includeMembers" placeholder="例: A, C" style="flex:1;">
+        </div>
+        <div class="form-group">
+          【除外】: <input type="text" id="excludeMembers" placeholder="例: B" style="flex:1;">
+        </div>
       </div>
     </div>
-  </div>
+  </details>
 
   <!-- 入力エリア -->
   <p style="margin: 0 0 6px 0; font-weight: bold; font-size: 14px;">▼ メンバーデータ入力</p>
   
   <div class="input-section">
     <div class="input-left">
-      <textarea id="inputText" placeholder="名前|スキル">A|8
+      <textarea id="inputText" placeholder="名前|スキル">A|9
 B|7
 C|6
 D|5
-E|4
+E|5
 F|3
 G|2
 H|1</textarea>
@@ -273,7 +308,6 @@ H|1</textarea>
   <script>
     let lastCalculatedResults = [];
 
-    // ダブルクォートやシングルクォートを取り除くクリーニング関数
     function cleanValue(str) {
       if (!str) return '';
       return str.trim().replace(/^["']|["']$/g, '').trim();
@@ -286,12 +320,10 @@ H|1</textarea>
       
       lines.forEach(line => {
         const trimmedLine = line.trim();
-        // ヘッダー行（例: メンバー名,スキルレベル など）を自動スキップ
         if (trimmedLine.includes('メンバー') || trimmedLine.includes('スキル')) return;
 
         const parts = trimmedLine.split(/[\t,| ]+/);
         if (parts.length >= 2) {
-          // 前後のダブルクォートを取り除く処理を追加
           const name = cleanValue(parts[0]);
           const skill = parseFloat(cleanValue(parts[1]));
           
@@ -341,7 +373,6 @@ H|1</textarea>
       const reader = new FileReader();
       reader.onload = function(e) {
         document.getElementById('inputText').value = e.target.result.trim();
-        // ファイル読み込み直後に自動でクォート除去と整理を行う
         formatData();
       };
       reader.readAsText(file);
