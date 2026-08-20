@@ -23,7 +23,6 @@
       margin-bottom: 15px;
     }
     
-    /* 設定パネル (モバイルでは縦並び) */
     .config-panel {
       background: #f8f9fa;
       border: 1px solid #e9ecef;
@@ -55,7 +54,7 @@
       padding: 8px;
       border: 1px solid #ccc;
       border-radius: 6px;
-      font-size: 16px; /* iOSでのフォーカス時自動ズーム防止 */
+      font-size: 16px;
       height: 40px;
     }
     
@@ -67,7 +66,6 @@
       margin: 8px 0;
     }
     
-    /* 入力エリア (スマホで縦1列) */
     .input-section {
       display: flex;
       flex-direction: column;
@@ -107,7 +105,6 @@
     }
     .quick-form input { flex: 1; min-width: 0; }
     
-    /* ボタン共通 (押しやすい高さ) */
     button {
       touch-action: manipulation;
       border-radius: 6px;
@@ -115,13 +112,16 @@
       cursor: pointer;
     }
     .btn-sm {
-      padding: 0 12px;
+      padding: 0 10px;
       height: 38px;
       font-size: 13px;
       border: none;
       background: #6c757d;
       color: white;
     }
+    .btn-green { background: #28a745; }
+    .btn-green:hover { background: #218838; }
+    
     .btn-main {
       background: #007bff;
       color: white;
@@ -145,7 +145,6 @@
       font-size: 13px;
     }
 
-    /* 結果テーブル (レスポンシブスクロール) */
     .table-container {
       width: 100%;
       overflow-x: auto;
@@ -156,7 +155,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 450px; /* スマホでも崩れない最小幅 */
+      min-width: 450px;
     }
     th, td {
       border: 1px solid #dee2e6;
@@ -173,6 +172,15 @@
       border-radius: 4px;
       margin: 1px;
       font-size: 12px;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
   </style>
 </head>
@@ -227,17 +235,18 @@
   
   <div class="input-section">
     <div class="input-left">
-      <textarea id="inputText" placeholder="名前|スキル">A|9
+      <textarea id="inputText" placeholder="名前|スキル">A|8
 B|7
 C|6
 D|5
-E|5
+E|4
 F|3
 G|2
 H|1</textarea>
-      <div style="margin-top: 6px; display: flex; gap: 6px;">
+      <div style="margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap;">
         <button class="btn-sm" onclick="formatData()" style="flex: 1;">整形・ソート</button>
-        <button class="btn-sm" onclick="clearData()" style="background:#dc3545; width: 70px;">クリア</button>
+        <button class="btn-sm btn-green" onclick="downloadMemberCSV()" style="flex: 1;">CSV出力</button>
+        <button class="btn-sm" onclick="clearData()" style="background:#dc3545; width: 60px;">クリア</button>
       </div>
     </div>
 
@@ -246,7 +255,7 @@ H|1</textarea>
       <div class="quick-form">
         <input type="text" id="addName" placeholder="名前">
         <input type="number" id="addSkill" placeholder="スキル" style="width: 70px;">
-        <button class="btn-sm" onclick="addSingleMember()" style="background: #28a745;">追加</button>
+        <button class="btn-sm btn-green" onclick="addSingleMember()">追加</button>
       </div>
 
       <b style="font-size: 13px;">ファイル読み込み (.csv/.txt):</b>
@@ -262,6 +271,8 @@ H|1</textarea>
   <div id="result"></div>
 
   <script>
+    let lastCalculatedResults = [];
+
     function parseMembers() {
       const text = document.getElementById('inputText').value.trim();
       const lines = text.split('\n');
@@ -321,6 +332,47 @@ H|1</textarea>
       reader.readAsText(file);
     }
 
+    // --- CSVダウンロードヘルパー (BOM付きUTF-8) ---
+    function triggerDownloadCSV(csvContent, fileName) {
+      const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+      const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // 入力データのCSVダウンロード
+    function downloadMemberCSV() {
+      const members = parseMembers();
+      if (members.length === 0) {
+        alert("出力するメンバーデータがありません。");
+        return;
+      }
+      let csv = "メンバー名,スキルレベル\n";
+      members.forEach(m => {
+        csv += `"${m.name.replace(/"/g, '""')}",${m.skill}\n`;
+      });
+      triggerDownloadCSV(csv, "members_list.csv");
+    }
+
+    // 結果のCSVダウンロード
+    function downloadResultCSV() {
+      if (!lastCalculatedResults || lastCalculatedResults.length === 0) {
+        alert("出力する組み合わせ結果がありません。");
+        return;
+      }
+      let csv = "No.,メンバー構成,合計スキル\n";
+      lastCalculatedResults.forEach((res, i) => {
+        const comboStr = res.names.join(" / ");
+        csv += `${i + 1},"${comboStr}",${res.total}\n`;
+      });
+      triggerDownloadCSV(csv, "combinations_result.csv");
+    }
+
     function calculate() {
       const teamSize = parseInt(document.getElementById('teamSize').value);
       const maxSkill = parseInt(document.getElementById('maxSkill').value);
@@ -377,7 +429,15 @@ H|1</textarea>
         return sortOrder === 'desc' ? b.total - a.total : a.total - b.total;
       });
 
-      let html = `<div style="font-weight:bold; margin-bottom: 8px;">該当結果: ${filteredResults.length} 件 (全 ${rawResults.length} 件中)</div>`;
+      lastCalculatedResults = filteredResults;
+
+      let html = `
+        <div class="result-header">
+          <div style="font-weight:bold;">該当結果: ${filteredResults.length} 件 (全 ${rawResults.length} 件中)</div>
+          ${filteredResults.length > 0 ? '<button class="btn-sm btn-green" onclick="downloadResultCSV()">結果をCSV出力</button>' : ''}
+        </div>
+      `;
+
       if (filteredResults.length > 0) {
         html += '<div class="table-container"><table><thead><tr><th style="width:45px;">No.</th><th>メンバー構成</th><th style="width:85px;">合計</th></tr></thead><tbody>';
         filteredResults.forEach((res, i) => {
