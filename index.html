@@ -247,10 +247,17 @@
     .tag {
       display: inline-block;
       background: #e2e3e5;
+      color: #333;
       padding: 3px 6px;
       border-radius: 4px;
       margin: 1px;
       font-size: 12px;
+    }
+    /* 「含む」指定メンバーの結果一覧用ハイライト */
+    .tag.include {
+      background: #007bff;
+      color: #ffffff;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -292,11 +299,11 @@
   
   <div class="input-section">
     <div class="input-left">
-      <textarea id="inputText" oninput="renderMemberChips()" placeholder="名前|スキル">A|8
+      <textarea id="inputText" oninput="renderMemberChips()" placeholder="名前|スキル">A|9
 B|7
 C|6
 D|5
-E|4
+E|5
 F|3
 G|2
 H|1</textarea>
@@ -583,7 +590,12 @@ H|1</textarea>
       if (filteredResults.length > 0) {
         html += '<div class="table-container"><table><thead><tr><th style="width:45px;">No.</th><th>メンバー構成</th><th style="width:85px;">合計</th></tr></thead><tbody>';
         filteredResults.forEach((res, i) => {
-          const membersTag = res.names.map(n => `<span class="tag">${n}</span>`).join(' ');
+          // 「含む」対象になっているメンバーを一覧でも青色（tag include）にする
+          const membersTag = res.names.map(n => {
+            const isIncluded = includes.includes(n.toUpperCase());
+            return `<span class="tag ${isIncluded ? 'include' : ''}">${n}</span>`;
+          }).join(' ');
+
           html += `<tr>
             <td>${i + 1}</td>
             <td style="text-align: left; padding-left: 10px;">${membersTag}</td>
