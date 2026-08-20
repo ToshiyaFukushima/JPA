@@ -22,15 +22,6 @@
       margin-top: 5px;
       margin-bottom: 12px;
     }
-    
-    /* 常時表示エリア (含む・除外) */
-    .quick-config {
-      background: #f8f9fa;
-      border: 1px solid #dee2e6;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 10px;
-    }
 
     /* アコーディオン（折りたたみ） */
     details {
@@ -183,18 +174,22 @@
       font-size: 13px;
     }
 
-    /* 結果コントロールバー */
-    .result-control-bar {
+    /* 絞り込み・結果コントロールパネル */
+    .filter-panel {
+      background: #eef5ff;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #b8daff;
+      margin-bottom: 15px;
+    }
+    .filter-panel-title {
+      font-weight: bold;
+      font-size: 13px;
+      color: #004085;
+      margin-bottom: 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-      gap: 10px;
-      background: #f8f9fa;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #dee2e6;
     }
 
     /* 結果テーブル */
@@ -232,18 +227,6 @@
 
   <h2>スキル組み合わせ計算ツール</h2>
   
-  <!-- 常時表示エリア (含む・除外) -->
-  <div class="quick-config">
-    <div class="row">
-      <div class="form-group">
-        【含む】: <input type="text" id="includeMembers" placeholder="例: A, C" style="flex:1;">
-      </div>
-      <div class="form-group">
-        【除外】: <input type="text" id="excludeMembers" placeholder="例: B" style="flex:1;">
-      </div>
-    </div>
-  </div>
-
   <!-- 折りたたみエリア (基本ルール設定) -->
   <details>
     <summary>⚙️ 基本ルール設定（人数・合計上限など）</summary>
@@ -311,16 +294,29 @@ H|1</textarea>
 
   <button class="btn-main" onclick="calculate()">組み合わせを計算</button>
 
-  <!-- 結果直前のコントロールバー（並び順・結果件数・CSV出力） -->
-  <div class="result-control-bar">
-    <div class="form-group" style="width: auto;">
-      並び順: 
-      <select id="sortOrder" onchange="calculate()">
-        <option value="desc">合計スキル：高い順</option>
-        <option value="asc">合計スキル：低い順</option>
-      </select>
+  <!-- 結果直前の絞り込み・コントロールパネル -->
+  <div class="filter-panel">
+    <div class="filter-panel-title">
+      <span>🔍 絞り込み & 並び順</span>
+      <span id="csvButtonArea"></span>
     </div>
-    <div id="csvButtonArea"></div>
+    <div class="row">
+      <div class="form-group">
+        【含む】: <input type="text" id="includeMembers" placeholder="例: A, C" style="flex:1;" oninput="calculate()">
+      </div>
+      <div class="form-group">
+        【除外】: <input type="text" id="excludeMembers" placeholder="例: B" style="flex:1;" oninput="calculate()">
+      </div>
+    </div>
+    <div class="row" style="margin-top: 8px;">
+      <div class="form-group">
+        並び順: 
+        <select id="sortOrder" style="flex:1;" onchange="calculate()">
+          <option value="desc">合計スキル：高い順</option>
+          <option value="asc">合計スキル：低い順</option>
+        </select>
+      </div>
+    </div>
   </div>
 
   <div id="result"></div>
